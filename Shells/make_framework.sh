@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 REVEAL_XCFRAMEWORK_IN_FINDER=true
 
