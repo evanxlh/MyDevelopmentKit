@@ -3,16 +3,16 @@
 <plist version="1.0">
 <dict>
 	<key>rootWorkingPath</key>
-	<string>/Users/evan/Documents/UBTech/狂浪/re-signature/SpeechDemo</string>
+	<string>/Users/evan/Documents/WorkingDir/MyApp</string>
 	<key>signIdentity</key>
-	<string>iPhone Distribution: UBTECH ROBOTICS CORP (E695D9MPGR)</string>
+	<string>iPhone Distribution: UBTECH ROBOTICS CORP (AABBCCDDEE)</string>
 	<key>entitlementsPlistFilePath</key>
-	<string>/Users/evan/Documents/UBTech/狂浪/re-signature/SpeechDemo/SpeechDemo.entitlements</string>
+	<string>/Users/evan/Documents/WorkingDir/MyApp.entitlements</string>
 	<key>mobileprovisionFilePath</key>
-	<string>/Users/evan/Documents/UBTech/狂浪/re-signature/SpeechDemo/Resignature_App_Test_For_AppStore.mobileprovision</string>
+	<string>/Users/evan/Documents/WorkingDir/Resignature_App_Test_For_AppStore.mobileprovision</string>
 	<key>newBundleID</key>
-	<string>com.ubtech.appresignature.test</string>
+	<string>com.your-company.test</string>
 	<key>newNameForIPA</key>
-	<string>Hello</string>
+	<string>YourApp</string>
 </dict>
 </plist>
