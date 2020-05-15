@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>rootWorkingPath</key>
+	<string>/Users/evan/Documents/UBTech/狂浪/re-signature/SpeechDemo</string>
+	<key>signIdentity</key>
+	<string>iPhone Distribution: UBTECH ROBOTICS CORP (E695D9MPGR)</string>
+	<key>entitlementsPlistFilePath</key>
+	<string>/Users/evan/Documents/UBTech/狂浪/re-signature/SpeechDemo/SpeechDemo.entitlements</string>
+	<key>mobileprovisionFilePath</key>
+	<string>/Users/evan/Documents/UBTech/狂浪/re-signature/SpeechDemo/Resignature_App_Test_For_AppStore.mobileprovision</string>
+	<key>newBundleID</key>
+	<string>com.ubtech.appresignature.test</string>
+	<key>newNameForIPA</key>
+	<string>Hello</string>
+</dict>
+</plist>
