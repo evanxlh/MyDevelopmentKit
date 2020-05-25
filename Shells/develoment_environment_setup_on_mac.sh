@@ -4,8 +4,8 @@ cd ~
 USER_HOME_DIR="$PWD"
 PROFILE_PATH="$USER_HOME_DIR/.profile"
 
-MY_EMAIL="linhua.xie@foxmail.com"
-USER_NAME="Evan Xie"
+MY_EMAIL="xxx.xxx@xxx.com"
+USER_NAME="xxxx"
 
 function updateGemSystem() {
 	sudo gem update —system
