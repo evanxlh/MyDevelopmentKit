@@ -4,8 +4,6 @@
 <dict>
 	<key>RootWorkingDirectory</key>
 	<string>/Users/test/Desktop/ResignWorkingDir/Test</string>
-	<key>MobileprovisionPath</key>
-	<string>/Users/test/Desktop/ResignWorkingDir/test.mobileprovision</string>
 	<key>SignIdentity</key>
 	<string>iPhone Distribution: YOUR_COMPONAY (AACCCCBB)</string>
 	<key>NewNameForIPA</key>

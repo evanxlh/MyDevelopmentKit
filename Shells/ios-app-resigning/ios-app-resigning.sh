@@ -32,21 +32,19 @@ function removeFileIfExists {
 # Step 1: 读取配置文件，准备签名需要的资源
 function readConfiguration() {
 
-	echo "This shell read the re-signature information from a configuration plist file, make sure plist file contains following keys:\n\n \
-🔸 RootWorkingDirectory: must, the absolute directory path which shell script works in, make sure your .ipa or .xcarchive exists in this directory.\n\n \
-🔸 MobileprovisionPath: must, .mobileprovision absolute file path\n\n \
-🔸 SignIdentity: must, like 【iPhone Distribution: COMPANY CORP (AABBCCDDEE)】, you can use command 'security find-identity' to list identities in your keychain\n\n \
-🔸 NewNameForIPA: optional, if not provied, use ipa name appending by '-resigned'. eg, MyApp-resigned.ipa\n\n \
-🔸 AppleID: optional, if not provided, will not upload re-signed ipa to app store\n\n \
-🔸 AppleIDPassword: optional, if not provided, will not upload re-signed ipa to app store\n\n"
+	echo "This shell read the re-signature information from a configuration plist file, make sure plist file contains following keys:\n \
+🔸 RootWorkingDirectory: must, the absolute directory path which shell script works in, make sure your .ipa or .xcarchive exists in this directory.\n \
+🔸 SignIdentity: must, like 【iPhone Distribution: COMPANY CORP (AABBCCDDEE)】, you can use command 'security find-identity' to list identities in your keychain\n \
+🔸 NewNameForIPA: optional, if not provied, use ipa name appending by '-resigned'. eg, MyApp-resigned.ipa\n \
+🔸 AppleID: optional, if not provided, will not upload re-signed ipa to app store\n \
+🔸 AppleIDPassword: optional, if not provided, will not upload re-signed ipa to app store\n"
 
 	until [[ $resign_configuration_path ]]; do
-		read -p "🚦 Drag the re-signature configuration plist file to here: " resign_configuration_path
+		read -p "🚦 Drag the re-signing parameters configuration plist file to here: " resign_configuration_path
 	done
 
 	root_working_dir_path=`/usr/libexec/PlistBuddy -c "Print :RootWorkingDirectory" $resign_configuration_path`
 	sign_identity=`/usr/libexec/PlistBuddy -c "Print :SignIdentity" $resign_configuration_path`
-	new_profile_path=`/usr/libexec/PlistBuddy -c "Print :MobileprovisionPath" $resign_configuration_path`
 	apple_id=`/usr/libexec/PlistBuddy -c "Print :AppleID" $resign_configuration_path`
 	apple_id_password=`/usr/libexec/PlistBuddy -c "Print :AppleIDPassword" $resign_configuration_path`
 	new_ipa_name=`/usr/libexec/PlistBuddy -c "Print :NewNameForIPA" $resign_configuration_path`
@@ -54,17 +52,21 @@ function readConfiguration() {
 	if [[ ${root_working_dir_path} ]]; then
 		root_working_dir_path=${root_working_dir_path%*/}
 	else
-		echo "‼️ no 【RootWorkingDirectory】 value provided in re-signature configuration plist file."
-		exit 1
-	fi
-
-	if [[ ! ${new_profile_path} ]]; then
-		echo "‼️ no 【MobileprovisionPath】 value provided in re-signature configuration plist file."
+		echo "‼️ No 【RootWorkingDirectory】 value provided in re-signature configuration plist file."
 		exit 1
 	fi
 
 	if [[ ! ${sign_identity} ]]; then
-		echo "‼️ no 【SignIdentity】 value provided in re-signature configuration plist file."
+		echo "‼️ No 【SignIdentity】 value provided in re-signature configuration plist file."
+		exit 1
+	fi
+
+	local profiles=`find $root_working_dir_path -name "*.ipa" -depth 1`
+
+	if [[ $profiles ]]; then
+		new_profile_path=${profiles[0]}
+	else
+		echo "‼️ No .mobileprovision file found in ${root_working_dir_path}."
 		exit 1
 	fi
 }
@@ -123,6 +125,7 @@ function prepareAppContentsFromIPA() {
 
 # Step 2 - xcarchive : 从 .xcarchive 中提取 app 及 SwiftSupport, 用于接下来的重签名
 function prepareAppContentsFromXCArchive() {
+	
 	echo "\n>>>>>>>> Extract app contents from xcarchive..."
 
 	# Payload
@@ -166,25 +169,16 @@ function getEntitlementsFromProfile() {
 
 	echo "Generate entitlements.plist from ${new_profile_path}"
 
-	## 从 Profile 中提取出来的 entitlements 信息存储路径
+	# 从 Provisioning Profile 中提取出来的 entitlements 信息存储路径
 	entitlements_plist_path="${root_working_dir_path}/entitlements.plist"
 
 	removeFileIfExists $entitlements_plist_path
 
-	# 从 *.mobileprovision 文件中提取出 entitlements.plist
+	# 将 *.mobileprovision 文件中的信息输出到一个临时plist
 	security cms -D -i $new_profile_path > tempProfile.plist
+
+	# 从临时plist中提取出 entitlements 信息并写入 entitlements.plist
 	/usr/libexec/PlistBuddy -x -c 'Print :Entitlements' tempProfile.plist > $entitlements_plist_path
-
-	# E6ABDGA.com.company.appresignature.test
-	local app_identifier=`/usr/libexec/PlistBuddy -c "Print :application-identifier" $entitlements_plist_path`
-
-	# https://stackoverflow.com/questions/10586153/split-string-into-an-array-in-bash
-	IFS='.' read -r -a components <<< "${app_identifier}"
-	
-	# Remove `E6ABDGA`: https://askubuntu.com/questions/435996/how-can-i-remove-an-entry-from-a-list-in-a-shells-script
-	unset components[0]
-	
-	new_bundle_id=`joinStringComponents "." "${components[@]}"`
 
 	rm -rf tempProfile.plist
 
@@ -201,6 +195,17 @@ function replaceWithNewProfile() {
 
 # Step 6: 更改 bundle id
 function changeBundleID() {
+
+	# E6ABDGA.com.company.appresignature.test
+	local app_identifier=`/usr/libexec/PlistBuddy -c "Print :application-identifier" $entitlements_plist_path`
+
+	# https://stackoverflow.com/questions/10586153/split-string-into-an-array-in-bash
+	IFS='.' read -r -a components <<< "${app_identifier}"
+	
+	# Remove `E6ABDGA`: https://askubuntu.com/questions/435996/how-can-i-remove-an-entry-from-a-list-in-a-shells-script
+	unset components[0]
+	
+	new_bundle_id=`joinStringComponents "." "${components[@]}"`
 
 	if [[ $new_bundle_id ]]; then
 		plutil -replace CFBundleIdentifier -string $new_bundle_id $app_infoplist_path
