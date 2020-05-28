@@ -1,5 +1,7 @@
 #!/bin/sh -e
 
+## 注意：所有文件或文件夹路径中不能有空格
+
 # Help Functions
 
 function joinStringComponents { 
@@ -32,15 +34,15 @@ function removeFileIfExists {
 # Step 1: 读取配置文件，准备签名需要的资源
 function readConfiguration() {
 
-	echo "This shell read the re-signature information from a configuration plist file, make sure plist file contains following keys:\n \
-🔸 RootWorkingDirectory: must, the absolute directory path which shell script works in, make sure your .ipa or .xcarchive exists in this directory.\n \
-🔸 SignIdentity: must, like 【iPhone Distribution: COMPANY CORP (AABBCCDDEE)】, you can use command 'security find-identity' to list identities in your keychain\n \
-🔸 NewNameForIPA: optional, if not provied, use ipa name appending by '-resigned'. eg, MyApp-resigned.ipa\n \
-🔸 AppleID: optional, if not provided, will not upload re-signed ipa to app store\n \
-🔸 AppleIDPassword: optional, if not provided, will not upload re-signed ipa to app store\n"
+	echo "请确认你的重签名参数配置文件中包含以下几项关键字:\n \
+🔸 RootWorkingDirectory: 必须，签名工作的根目录，ipa或xcarchive，provisioning profile文件需要放在这个根目录中。\n \
+🔸 SignIdentity: 必须，如[iPhone Distribution: xxx CORP]。可以在命令行用'security find-identity'列出钥匙串中的签名身份信息。\n \
+🔸 NewNameForIPA: 可选，如果没有提供则使用.app包的名字加上 '-resigned'. eg, MyApp-resigned.ipa.\n \
+🔸 AppleID: 可选，如果没有提供，就不会将重签名的ipa上传到iTnues Connect。\n \
+🔸 AppleIDPassword: 可选，如果没有提供，就不会将重签名的ipa上传到iTnues Connect。\n"
 
 	until [[ $resign_configuration_path ]]; do
-		read -p "🚦 Drag the re-signing parameters configuration plist file to here: " resign_configuration_path
+		read -p "🚦 请将重签名参数配置文件拖动到这里: " resign_configuration_path
 	done
 
 	root_working_dir_path=`/usr/libexec/PlistBuddy -c "Print :RootWorkingDirectory" $resign_configuration_path`
@@ -52,21 +54,21 @@ function readConfiguration() {
 	if [[ ${root_working_dir_path} ]]; then
 		root_working_dir_path=${root_working_dir_path%*/}
 	else
-		echo "‼️ No 【RootWorkingDirectory】 value provided in re-signature configuration plist file."
+		echo "‼️ 重签名参数配置文件【RootWorkingDirectory】内容为空。"
 		exit 1
 	fi
 
 	if [[ ! ${sign_identity} ]]; then
-		echo "‼️ No 【SignIdentity】 value provided in re-signature configuration plist file."
+		echo "‼️ 重签名参数配置文件【SignIdentity】内容为空。"
 		exit 1
 	fi
 
-	local profiles=`find $root_working_dir_path -name "*.ipa" -depth 1`
+	local profiles=`find $root_working_dir_path -name "*.mobileprovision" -depth 1`
 
 	if [[ $profiles ]]; then
 		new_profile_path=${profiles[0]}
 	else
-		echo "‼️ No .mobileprovision file found in ${root_working_dir_path}."
+		echo "‼️ 在 ${root_working_dir_path} 目录下没有找到.mobileprovision文件。"
 		exit 1
 	fi
 }
@@ -79,7 +81,7 @@ function prepareAppContents() {
 	makeDirectoryIfNotExists $ipa_output_directory
 
 	# 用于存放 ipa 文件解压出来的内容或者 xcarchive 包中的 app, SwiftSupport 等.
-	app_contents_root_path="${root_working_dir_path}/AppContentsForResigning"
+	app_contents_root_path="${root_working_dir_path}/AppContents"
 	payload_path="${app_contents_root_path}/Payload"
 
 	# 删除历史残留文件
@@ -94,7 +96,7 @@ function prepareAppContents() {
 	elif [[ $archives ]]; then
 		prepareAppContentsFromXCArchive ${archives[0]}
 	else
-		echo "‼️ Haven't found .ipa or .xcarchive, please put .ipa or xcarchive package into root working directory"
+		echo "‼️ 在 ${root_working_dir_path} 目录下没有找到.ipa或.xcarchive。"
 		exit 1
 	fi
 
@@ -113,20 +115,20 @@ function prepareAppContents() {
 # Step 2 - ipa : 解压 ipa, 用于接下来的重签名
 function prepareAppContentsFromIPA() {
 
-	echo "\n>>>>>>>> Unzip ipa..."
+	echo "\n>>>>>>>>开始解压ipa..."
 
 	local ipa_path=$1
 
 	# unzip .ipa to destination folder
 	unzip -d $app_contents_root_path $ipa_path
 
-	echo "🔹 Unzip ipa done!"
+	echo "🔹 解压ipa完成!"
 }
 
 # Step 2 - xcarchive : 从 .xcarchive 中提取 app 及 SwiftSupport, 用于接下来的重签名
 function prepareAppContentsFromXCArchive() {
 	
-	echo "\n>>>>>>>> Extract app contents from xcarchive..."
+	echo "\n>>>>>>>> 正在从xcarchive包中提取app内容..."
 
 	# Payload
 	#  	- *.app
@@ -146,28 +148,28 @@ function prepareAppContentsFromXCArchive() {
 		cp -rf $swift_support_path $app_contents_root_path
 	fi
 
-	echo "🔹 Extract app contents from xcarchive done!"
+	echo "🔹 从xcarchive包中提取出app内容成功啦!"
 }
 
 # Step 3: 删除所有的 _CodeSignature 签名文件夹
 function removeAllOldCodeSignature() {
 
-	echo ">>>>>>>> Removing old code signatures..."
+	echo ">>>>>>>> 移除所有旧的签名..."
 
 	oldSignatures=`find $app_contents_root_path -name "_CodeSignature"`
 
 	for signature in $oldSignatures; do
 		rm -rf $signature 
-		echo "Removing ${signature}"
+		echo "已移除 ${signature}"
 	done
 
-	echo "🔹 Removing old code signatures done!"
+	echo "🔹 移除所有旧的签名成功啦!"
 }
 
 # Step 4: 获取 entitlements.plsit
 function getEntitlementsFromProfile() {
 
-	echo "Generate entitlements.plist from ${new_profile_path}"
+	echo "从${new_profile_path}生成entitlements.plist"
 
 	# 从 Provisioning Profile 中提取出来的 entitlements 信息存储路径
 	entitlements_plist_path="${root_working_dir_path}/entitlements.plist"
@@ -182,7 +184,7 @@ function getEntitlementsFromProfile() {
 
 	rm -rf tempProfile.plist
 
-	echo "🔹 Generate entitlements.plist done at path: ${entitlements_plist_path}"
+	echo "🔹 生成entitlements.plist成功: ${entitlements_plist_path}"
 }
 
 # Step 5: 替换新的签名 profile, 即 .mobileprovision 文件
@@ -190,7 +192,7 @@ function replaceWithNewProfile() {
 
 	cp $new_profile_path $app_profile_path
 
-	echo "🔹 Replacing mobileprovision file done!"
+	echo "🔹 替换mobileprovision文件成功!"
 }
 
 # Step 6: 更改 bundle id
@@ -209,16 +211,16 @@ function changeBundleID() {
 
 	if [[ $new_bundle_id ]]; then
 		plutil -replace CFBundleIdentifier -string $new_bundle_id $app_infoplist_path
-		echo "🔹 Change app bundle id done!"
+		echo "🔹 修改app bundle id成功!"
 	else
-		echo "🔹 Skip changing app bundle id."
+		echo "🔹 不修改app bundle id."
 	fi
 }
 
 # Step 7: 对 *.app/Frameworks 下的每个库进行签名
 function resignFrameworksInAppBundle() {
 
-	echo ">>>>>>>>  Will re-sign frameworks and dynamic libraries..."
+	echo ">>>>>>>> 开始重签名embedded frameworks, dynamic libraries..."
 
 	local frameworks=`find $app_frameworks_path -name "*.framework" -o -name "*.dylib"`
 
@@ -226,17 +228,17 @@ function resignFrameworksInAppBundle() {
 		codesign -f -s "${sign_identity}" $framework
 	done
 
-	echo "🔹 Re-sign frameworks and dynamic libraries done!"
+	echo "🔹 重签名embedded frameworks, dynamic libraries 成功!"
 }
 
 # Step 8: 对 Payload 目录下的所有文件资源进行签名，但不包括对 frameworks 中的文件资源进行签名
 function resignAppBundle() {
 
-	echo ">>>>>>>>  Will re-sign app resource..."
+	echo ">>>>>>>> 开始重签名app bundle..."
 
 	codesign -f -s "${sign_identity}" --entitlements "${entitlements_plist_path}" $app_bundle_path
 	
-	echo "🔹 Re-sign app resource done!"
+	echo "🔹 重签名app bundle成功!"
 }
 
 # Step 9: 验证签名
@@ -248,7 +250,7 @@ function verifyAppAfterResigned() {
 # Step 10: 重新制作 ipa 包
 function remakeIPA() {
 
-	echo "Remaking IPA ..."
+	echo "正在制作新的ipa ..."
 
 	if [[ ! $new_ipa_name ]]; then
 		new_ipa_name="$(basename $ipa_path .ipa)-resigned.ipa"
@@ -275,7 +277,7 @@ function remakeIPA() {
 
  	reigned_ipa_path="${ipa_output_directory}/${new_ipa_name}"
 	
-	echo "🔹 Remake ipa done at path: ${ipa_output_directory}/${new_ipa_name}"
+	echo "🔹 制作新的ipa成功: ${ipa_output_directory}/${new_ipa_name}"
 }
 
 function startWorkingFlow() {
@@ -294,30 +296,30 @@ function startWorkingFlow() {
 function validateResignedIpa() {
 
 	if [[ $apple_id && $apple_id_password ]]; then
-		echo "Validating re-signed ipa...\n"
+		echo "iTnues Connect正在验证ipa...\n"
 
 		xcrun altool --validate-app -f $reigned_ipa_path -t iOS -u $apple_id -p $apple_id_password
 
-		echo "🔹 Validate re-signed ipa Done!"
+		echo "🔹 iTnues Connect验证ipa成功!"
 
 	fi
 }
 
-function uploadResignedIpaToAppStore() {
+function uploadIpaToiTunesConnect() {
 
 	if [[ $apple_id && $apple_id_password ]]; then
 
-		echo "Uploading re-signed app to AppStore..."
+		echo "正在上传ipa至iTunes Connect..."
 
 		xcrun altool --upload-app -f $reigned_ipa_path -t iOS -u $apple_id -p $apple_id_password
 
-		echo "🔹 Uploading re-signed app Done!"
+		echo "🔹 上传ipa至iTunes Connect成功!"
 
 	fi
 }
 
 startWorkingFlow
-uploadResignedIpaToAppStore
+uploadIpaToiTunesConnect
 
 
 

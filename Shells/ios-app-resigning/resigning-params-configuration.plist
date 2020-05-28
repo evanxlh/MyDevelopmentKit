@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>RootWorkingDirectory</key>
-	<string>/Users/test/Desktop/ResignWorkingDir/Test</string>
+	<string>/path/to/RootResigningWorkingDirectory</string>
 	<key>SignIdentity</key>
-	<string>iPhone Distribution: YOUR_COMPONAY (AACCCCBB)</string>
+	<string>iPhone Distribution: COMPANY_NAME CORP</string>
 	<key>NewNameForIPA</key>
-	<string></string>
+	<string>Test-AppStore</string>
 	<key>AppleID</key>
 	<string></string>
 	<key>AppleIDPassword</key>
