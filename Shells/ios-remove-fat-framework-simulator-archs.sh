@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh
 
 APP_PATH="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
 
