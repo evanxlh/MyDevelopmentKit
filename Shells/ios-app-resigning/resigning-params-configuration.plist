@@ -8,6 +8,10 @@
 	<string>iPhone Distribution: COMPANY_NAME CORP</string>
 	<key>NewNameForIPA</key>
 	<string>Test-AppStore</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>2</string>
 	<key>AppleID</key>
 	<string></string>
 	<key>AppleIDPassword</key>
